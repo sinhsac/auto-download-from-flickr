@@ -1,10 +1,13 @@
 package com.test;
 
+import static org.junit.Assert.assertFalse;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
@@ -20,45 +23,17 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
-
 import com.test.WriterCSV.Types;
 
 public class XTestTest {
 	private static WebDriver driver = null;
-	private static String userId = "angus219437"; //"99002729@N07"; // "angus219437";
-	private static String basePage = "https://flickr.com/photos/" + userId + "/";
-	private static Set<String> links = new LinkedHashSet<>();
-	private static WriterCSV userImageInfo = null;
-	private static WriterCSV userFinalImage = null;
+	private static List<String> userIds = new ArrayList<>();
+	private static String baseUrl = "https://flickr.com/photos/";
 	private static Properties properties = new Properties();
 	
-
-	@Test
-	public void preTest() {
-		System.out.println("\n\ninit driver");
-		links = new LinkedHashSet<>();
-		
-		try (InputStream input = new FileInputStream("config/flickr.properties")) {
-			properties.load(input);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		userImageInfo = WriterCSV.getInstance(userId, Types.IMG_INFO);
-		userFinalImage = WriterCSV.getInstance(userId, Types.FINAL_IMG);
-		
-		File browserFile = new File("files/" + properties.getProperty("driver"));
-		
-		//browserFile = new File("files\\phantomjs.exe");
-		//System.setProperty("phantomjs.binary.path", browserFile.getAbsolutePath());
-		
-		System.setProperty("webdriver.gecko.driver", browserFile.getAbsolutePath());
-		driver = new FirefoxDriver();
-	}
-
-	@Test
-	public void firstTestLoginToFlick() {
-		System.out.println("\n\nLogin into flickr");
+	
+	private void loginIntoFlick() {
+		System.out.println("\n\n[INFO] \t Login into flickr");
 		driver.get("https://flickr.com/signin");
 		driver.findElement(By.id("login-email")).sendKeys(properties.getProperty("username"));
 
@@ -67,23 +42,71 @@ public class XTestTest {
 		driver.findElement(By.id("login-password")).sendKeys(properties.getProperty("password"));
 		logClick();
 		driver.manage().window().maximize();
+		System.out.println("[INFO] \t Login successful");
+	}
+	
+	@Test
+	public void firstTestCommonTesting() {
+		initDriver();
+		
+		loginIntoFlick();
+		
+		for(String strUserId: userIds) {
+			WriterCSV userImageInfo = WriterCSV.getInstance(strUserId, Types.IMG_INFO);
+			WriterCSV userFinalImage = WriterCSV.getInstance(strUserId, Types.FINAL_IMG);
+			
+			Set<String> links = new LinkedHashSet<>();
+			processForUser(strUserId, links, userImageInfo, userFinalImage);
+		}
 	}
 
-	@Test
-	public void secondTestCollectAllLinks() {
-		processForPage(1);
+	private void initDriver() {
+		System.out.println("\n\n[INFO] \t init driver");
+
+		try (InputStream input = new FileInputStream("config/flickr.properties")) {
+			properties.load(input);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		String strUserIds = properties.getProperty("userids");
+		assertFalse(StringUtils.isBlank(strUserIds));
+		
+		if (strUserIds.contains(",")) {
+			userIds = Arrays.asList(strUserIds.split(",")).stream()
+					.map(s -> StringUtils.trimToEmpty(""))
+					.filter(s -> StringUtils.isNotBlank(s))
+					.collect(Collectors.toList());
+		} else {
+			userIds.add(strUserIds);
+		}
+		
+		assertFalse(userIds == null || userIds.isEmpty());
+		File browserFile = new File("files/" + properties.getProperty("driver"));
+		System.setProperty("webdriver.gecko.driver", browserFile.getAbsolutePath());
+		driver = new FirefoxDriver();
+		System.out.println("\n[INFO] \t init done");
+	}
+
+	public void processForUser(String userId, Set<String> links, WriterCSV userImageInfo, WriterCSV userFinalImage) {
+		System.out.println("\n\n[INFO] \t Process for user " + userId);
+		String basePage = baseUrl + userId + "/";
+		processForPage(userId, 1, basePage, links, userImageInfo);
 		Integer totalPages = calcTotalPage();
 
 		if (totalPages > 1) {
 			for (int i = 2; i <= totalPages; i++) {
-				processForPage(i);
+				processForPage(userId, i, basePage, links, userImageInfo);
 			}
 		}
+		
 		System.out.println(String.format("found %s images link", links.size()));
+		
+		thirdTestGetSizeImgs(links, userFinalImage);
+		System.out.println("\n[INFO] \t for user " + userId + " ====> done");
 	}
 
-	@Test
-	public void thirdTestGetSizeImgs() {
+	public void thirdTestGetSizeImgs(Set<String> links, WriterCSV userFinalImage) {
 		System.out.println("\n\nprocess for collect images");
 		for (String link : links) {
 			String sizeLinks = link.replace("in/dateposted/", "sizes/3k/");
@@ -107,8 +130,6 @@ public class XTestTest {
 		}
 	}
 	
-	
-
 	private WebElement getLastSize(String[] imgLink) {
 		List<WebElement> elements = driver.findElements(By.cssSelector("ol.sizes-list > li > ol > li"));
 		if (elements == null || elements.isEmpty()) {
@@ -145,13 +166,13 @@ public class XTestTest {
 		return false;
 	}
 
-	private void processForPage(int i) {
+	private void processForPage(String userId, int i, String basePage, Set<String> links, WriterCSV userImageInfo) {
 		driver.get(basePage + "page" + i);
 		waitXSecond(5);
 		JavascriptExecutor js = (JavascriptExecutor) driver;
 		js.executeScript("window.scrollTo(0, document.body.scrollHeight)");
 		waitXSecond(8);
-		processListTagAImage(i);
+		processListTagAImage(userId, i, links, userImageInfo);
 	}
 
 	private Integer calcTotalPage() {
@@ -164,7 +185,7 @@ public class XTestTest {
 				.mapToInt(s -> Integer.parseInt(s)).max().orElse(1);
 	}
 
-	private void processListTagAImage(Integer page) {
+	private void processListTagAImage(String userId, Integer page, Set<String> links, WriterCSV userImageInfo) {
 		System.out.println("\n\n");
 		System.out.println(String.format("process for page %s", page));
 		List<WebElement> elements = driver.findElements(By.cssSelector(".interaction-view > div > a"));
@@ -180,12 +201,20 @@ public class XTestTest {
 			}
 			
 			userImageInfo.writeNewLine(link);
-			Pattern pattern = Pattern.compile("(.+)([0-9]{11})\\/in\\/dateposted\\/");
+			Pattern pattern = Pattern.compile("(.+)\\/" + userId + "\\/([0-9]+)\\/in\\/dateposted");
 			Matcher matcher = pattern.matcher(link);
-			if (matcher.matches() && StringUtils.isNotBlank(matcher.group(2))) {
-				links.add(link);
-				photoIds.add(matcher.group(2));
+			if (!matcher.find()) {
+				continue;
 			}
+			if (matcher.groupCount() < 2) {
+				continue;
+			}
+			if (StringUtils.isBlank(matcher.group(2))) {
+				continue;
+			}
+			links.add(link);
+			photoIds.add(matcher.group(2));
+
 		}
 		
 		System.out.println(photoIds.stream().collect(Collectors.joining(", ")));
