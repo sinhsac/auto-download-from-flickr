@@ -73,9 +73,9 @@ public class XTestTest {
 		assertFalse(StringUtils.isBlank(strUserIds));
 		
 		if (strUserIds.contains(",")) {
-			userIds = Arrays.asList(strUserIds.split(",")).stream()
-					.map(s -> StringUtils.trimToEmpty(""))
+			userIds = Arrays.stream(strUserIds.split(","))
 					.filter(s -> StringUtils.isNotBlank(s))
+					.map(s -> s.trim())
 					.collect(Collectors.toList());
 		} else {
 			userIds.add(strUserIds);
