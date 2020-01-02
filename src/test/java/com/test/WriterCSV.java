@@ -24,7 +24,7 @@ public class WriterCSV {
 			}
 			
 			
-			file = new File(userFolder, type.name() + ".csv");
+			file = new File(userFolder, type.name() + ".txt");
 		}
 		
 		public void writeNewLine(String line) {

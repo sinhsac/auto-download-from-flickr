@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,7 +17,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.lang3.StringUtils;
+import org.littleshoot.proxy.HostResolver;
 import org.littleshoot.proxy.HttpFilters;
 import org.littleshoot.proxy.HttpFiltersAdapter;
 import org.littleshoot.proxy.HttpFiltersSourceAdapter;
@@ -40,6 +45,7 @@ import com.test.utils.JsonSerializer;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.DecoderResult;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
@@ -48,6 +54,15 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
+import net.lightbody.bmp.BrowserMobProxy;
+import net.lightbody.bmp.BrowserMobProxyServer;
+import net.lightbody.bmp.client.ClientUtil;
+import net.lightbody.bmp.core.har.Har;
+import net.lightbody.bmp.filters.RequestFilter;
+import net.lightbody.bmp.filters.ResponseFilter;
+import net.lightbody.bmp.proxy.CaptureType;
+import net.lightbody.bmp.util.HttpMessageContents;
+import net.lightbody.bmp.util.HttpMessageInfo;
 
 public class MyDriver {
 	public static Logger log = LoggerFactory.getLogger(MyDriver.class);
@@ -62,16 +77,15 @@ public class MyDriver {
 		}
 		return driver;
 	}
-
-	private static void initDriver() {
-		log.debug("init driver");
-
-		HttpProxyServer server = DefaultHttpProxyServer.bootstrap().withPort(6969)
+	
+	private static HttpProxyServer getHttpProxyServer() {
+		HttpProxyServer server = DefaultHttpProxyServer.bootstrap()
+				.withPort(6969)
 				.withFiltersSource(new HttpFiltersSourceAdapter() {
 					@Override
 					public HttpFilters filterRequest(HttpRequest originalRequest) {
 						return new HttpFiltersAdapter(originalRequest) {
-
+							
 							@Override
 							public HttpResponse clientToProxyRequest(HttpObject httpObject) {
 								if (httpObject instanceof HttpRequest) {
@@ -79,6 +93,7 @@ public class MyDriver {
 									
 									return fillterRequest(request);
 								}
+								
 								return null;
 							}
 							
@@ -97,6 +112,8 @@ public class MyDriver {
 										) {
 									return null;
 								}
+								
+								
 								
 								if (!url.endsWith("/3k/") && !url.endsWith("/4k/") && !url.endsWith(".com") && !url.endsWith("/login") && !url.endsWith("/signin")) {
 									System.out.println(url);
@@ -119,7 +136,20 @@ public class MyDriver {
 						};
 					}
 				}).start();
+		return server;
+	}
 
+	private static void initDriver() {
+		log.debug("init driver");
+
+		BrowserMobProxy proxy = new BrowserMobProxyServer();
+	    proxy.start(0);
+	    
+	    Proxy seleniumProxy = ClientUtil.createSeleniumProxy(proxy);
+		
+	    
+	    
+	    
 		try (InputStream input = new FileInputStream("config/flickr.properties")) {
 			properties.load(input);
 		} catch (IOException e) {
@@ -152,14 +182,49 @@ public class MyDriver {
 
 			FirefoxOptions options = new FirefoxOptions().addPreference("permissions.default.image", 2);
 			options.merge(dc);
-
-			Proxy proxy = new Proxy();
-			proxy.setHttpProxy(server.getListenAddress().getHostName() + ":6969");
-			proxy.setSslProxy(server.getListenAddress().getHostName() + ":6969");
-
-			options.setProxy(proxy);
+			
+			options.setProxy(seleniumProxy);
 
 			driver = new FirefoxDriver(options);
+			proxy.enableHarCaptureTypes(CaptureType.REQUEST_CONTENT, CaptureType.RESPONSE_CONTENT);
+			
+			proxy.addRequestFilter(new RequestFilter() {
+	            @Override
+	            public HttpResponse filterRequest(HttpRequest request, HttpMessageContents contents, HttpMessageInfo messageInfo) {
+	                
+	                String url = request.getUri();
+	                String urx = messageInfo.getOriginalUrl();
+	                
+	                if (url.equalsIgnoreCase("www.google.com:443")) {
+	                	return generateResponse(HttpResponseStatus.BAD_GATEWAY, "BAD_GATEWAY");
+	                }
+	                
+	                if (urx.endsWith(".woff")
+	                		|| urx.endsWith(".woff2") 
+	                		|| urx.endsWith(".css")
+	                		|| urx.endsWith(".png") || urx.endsWith(".jpg") || urx.endsWith(".jpeg")
+	                		) {
+	                	return generateResponse(HttpResponseStatus.BAD_GATEWAY, "BAD_GATEWAY");
+	                }
+	                if (url.startsWith("/services/rest")) {
+	                	System.out.println(url);
+	                }
+	                
+	                return null;
+	            }
+	            
+	            private HttpResponse generateResponse(HttpResponseStatus status, String strContent) {
+					byte[] bytes = strContent.getBytes(Charset.forName("UTF-8"));
+					ByteBuf content = Unpooled.copiedBuffer(bytes);
+					HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content);
+					response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, bytes.length);
+					response.headers().set("Content-Type", "text/html; charset=UTF-8");
+					response.headers().set("Date", ProxyUtils.formatDate(new Date()));
+					response.headers().set(HttpHeaders.Names.CONNECTION, "close");
+					return response;
+				}
+	        });
+
 		} else if (browserType.equalsIgnoreCase("html")) {
 			driver = new HtmlUnitDriver(BrowserVersion.FIREFOX_60, true);
 		}
