@@ -8,3 +8,7 @@
 * `export DISPLAY=:10`
 * `firefox`
 
+
+
+`/mvnw clean -Dtest=ProcessSizeImg test`
+

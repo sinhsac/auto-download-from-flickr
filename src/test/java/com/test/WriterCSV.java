@@ -35,6 +35,10 @@ public class WriterCSV {
 			}
 		}
 		
+		public File getFile() {
+			return file;
+		}
+		
 		public static WriterCSV getInstance(String userId, Types type) {
 			return new WriterCSV(userId, type);
 		}
