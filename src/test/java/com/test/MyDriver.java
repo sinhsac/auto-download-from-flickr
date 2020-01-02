@@ -201,7 +201,6 @@ public class MyDriver {
 	                
 	                if (urx.endsWith(".woff")
 	                		|| urx.endsWith(".woff2") 
-	                		|| urx.endsWith(".css")
 	                		|| urx.endsWith(".png") || urx.endsWith(".jpg") || urx.endsWith(".jpeg")
 	                		) {
 	                	return generateResponse(HttpResponseStatus.BAD_GATEWAY, "BAD_GATEWAY");
