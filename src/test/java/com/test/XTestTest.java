@@ -16,6 +16,7 @@ import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.test.MyDriver.TypeForDownload;
 import com.test.WriterCSV.Types;
 
 public class XTestTest {
@@ -25,7 +26,7 @@ public class XTestTest {
 	
 	@Test
 	public void firstTestCommonTesting() {
-		MyDriver.loginIntoFlick();
+		MyDriver.loginIntoFlick(TypeForDownload.URL);
 
 		for(String strUserId: MyDriver.userIds()) {
 			WriterCSV userImageInfo = WriterCSV.getInstance(strUserId, Types.IMG_INFO);
@@ -54,7 +55,7 @@ public class XTestTest {
 	}
 
 	private void processForPage(String userId, int page, int totalPage, String basePage, Set<String> links, WriterCSV userImageInfo) {
-		MyDriver.getDriver().get(basePage + "page" + page);
+		MyDriver.getDriver(TypeForDownload.URL).get(basePage + "page" + page);
 		MyDriver.waitXSecond(5);
 		
 		if (totalPage == -1 || page == totalPage) {
@@ -67,11 +68,11 @@ public class XTestTest {
 	}
 	
 	private void scrollToBottom() {
-		JavascriptExecutor js = (JavascriptExecutor) MyDriver.getDriver();
+		JavascriptExecutor js = (JavascriptExecutor) MyDriver.getDriver(TypeForDownload.URL);
 		js.executeScript("window.scrollTo(0, document.body.scrollHeight)");
 		MyDriver.waitXSecond(4);
 		for(int i=0; i<20; i++) {
-			List<WebElement> elements = MyDriver.getDriver().findElements(By.cssSelector(".interaction-view > div > a"));
+			List<WebElement> elements = MyDriver.getDriver(TypeForDownload.URL).findElements(By.cssSelector(".interaction-view > div > a"));
 			if (elements.size() > 90) {
 				break;
 			}
@@ -82,26 +83,26 @@ public class XTestTest {
 	}
 	
 	private void simpleScrollToBottom() {
-		JavascriptExecutor js = (JavascriptExecutor) MyDriver.getDriver();
+		JavascriptExecutor js = (JavascriptExecutor) MyDriver.getDriver(TypeForDownload.URL);
 		js.executeScript("window.scrollTo(0, document.body.scrollHeight)");
 		MyDriver.waitXSecond(4);
-		List<WebElement> elements = MyDriver.getDriver().findElements(By.className("flickr-dots"));
+		List<WebElement> elements = MyDriver.getDriver(TypeForDownload.URL).findElements(By.className("flickr-dots"));
 		if (elements == null || elements.isEmpty()) {
 			js.executeScript("window.scrollTo(0, document.body.scrollHeight)");
 			
-			elements = MyDriver.getDriver().findElements(By.className("flickr-dots"));
+			elements = MyDriver.getDriver(TypeForDownload.URL).findElements(By.className("flickr-dots"));
 			if (elements != null && !elements.isEmpty()) {
 				MyDriver.waitXSecond(4);
 				
 				js.executeScript("window.scrollTo(0, document.body.scrollHeight)");
 				
-				elements = MyDriver.getDriver().findElements(By.className("flickr-dots"));
+				elements = MyDriver.getDriver(TypeForDownload.URL).findElements(By.className("flickr-dots"));
 				if (elements != null && !elements.isEmpty()) {
 					MyDriver.waitXSecond(4);
 					
 					js.executeScript("window.scrollTo(0, document.body.scrollHeight)");
 					
-					elements = MyDriver.getDriver().findElements(By.className("flickr-dots"));
+					elements = MyDriver.getDriver(TypeForDownload.URL).findElements(By.className("flickr-dots"));
 					if (elements != null && !elements.isEmpty()) {
 						MyDriver.waitXSecond(4);
 					}
@@ -112,7 +113,7 @@ public class XTestTest {
 	}
 
 	private Integer calcTotalPage() {
-		List<WebElement> elements = MyDriver.getDriver().findElements(By.cssSelector(".view.pagination-view.photostream > a > span"));
+		List<WebElement> elements = MyDriver.getDriver(TypeForDownload.URL).findElements(By.cssSelector(".view.pagination-view.photostream > a > span"));
 		if (elements == null || elements.isEmpty()) {
 			return 1;
 		}
@@ -124,7 +125,7 @@ public class XTestTest {
 	private void processListTagAImage(String userId, Integer page, Integer totalPage, Set<String> links, WriterCSV userImageInfo) {
 		System.out.println("\n\n");
 		System.out.println(String.format("process for page %s/%s", page, totalPage));
-		List<WebElement> elements = MyDriver.getDriver().findElements(By.cssSelector(".interaction-view > div > a"));
+		List<WebElement> elements = MyDriver.getDriver(TypeForDownload.URL).findElements(By.cssSelector(".interaction-view > div > a"));
 		List<String> photoIds = new ArrayList<>();
 		for (WebElement element : elements) {
 			// String label = element.getAttribute("aria-label");

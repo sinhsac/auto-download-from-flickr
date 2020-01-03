@@ -11,13 +11,14 @@ import org.junit.Test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
+import com.test.MyDriver.TypeForDownload;
 import com.test.WriterCSV.Types;
 
 public class ProcessSizeImg {
 	
 	@Test
 	public void downloadAllData() {
-		MyDriver.loginIntoFlick();
+		MyDriver.loginIntoFlick(TypeForDownload.IMG);
 		
 		for(String strUserId: MyDriver.userIds()) {
 			WriterCSV userFinalImage = WriterCSV.getInstance(strUserId, Types.FINAL_IMG);
@@ -39,7 +40,7 @@ public class ProcessSizeImg {
 		int itemAt = 0;
 		for (String link : links) {
 			String sizeLinks = link.replace("in/dateposted/", "sizes/3k/");
-			MyDriver.getDriver().get(sizeLinks);
+			MyDriver.getDriver(TypeForDownload.IMG).get(sizeLinks);
 
 			String[] imgLink = new String[1];
 			WebElement lastTagA = getLastSize(imgLink);
@@ -68,7 +69,7 @@ public class ProcessSizeImg {
 	
 	
 	private WebElement getLastSize(String[] imgLink) {
-		List<WebElement> elements = MyDriver.getDriver().findElements(By.cssSelector("ol.sizes-list > li > ol > li"));
+		List<WebElement> elements = MyDriver.getDriver(TypeForDownload.IMG).findElements(By.cssSelector("ol.sizes-list > li > ol > li"));
 		if (elements == null || elements.isEmpty()) {
 			return null;
 		}
@@ -85,7 +86,7 @@ public class ProcessSizeImg {
 	}
 	
 	private String getImgLink() {
-		List<WebElement> elements = MyDriver.getDriver().findElements(By.cssSelector("#allsizes-photo > img"));
+		List<WebElement> elements = MyDriver.getDriver(TypeForDownload.IMG).findElements(By.cssSelector("#allsizes-photo > img"));
 		if (elements == null || elements.isEmpty()) {
 			return "";
 		}
