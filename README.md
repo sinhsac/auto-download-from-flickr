@@ -1,11 +1,13 @@
 # auto-download-from-flickr
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Java](https://img.shields.io/badge/Java-8-orange.svg)](https://www.oracle.com/java/)
-[![Selenium](https://img.shields.io/badge/Selenium-3.141.59-43B02A.svg)](https://www.selenium.dev/)
-[![Maven](https://img.shields.io/badge/Maven-Wrapper-C71A36.svg)](https://maven.apache.org/)
+[![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://adoptium.net/)
+[![Selenium](https://img.shields.io/badge/Selenium-4.54-43B02A.svg)](https://www.selenium.dev/)
+[![Maven](https://img.shields.io/badge/Maven-3.9+-C71A36.svg)](https://maven.apache.org/)
 
 A Java and Selenium WebDriver automation tool that crawls Flickr user photostreams, saves authenticated session cookies, and extracts maximum-resolution image URLs in bulk using proxy-based traffic filtering for faster scraping.
+
+> **Note:** The original legacy version (Java 8 / Selenium 3) is archived under GitHub Release [`v0.1.0-legacy`](https://github.com/sinhsac/auto-download-from-flickr/releases/tag/v0.1.0-legacy).
 
 ## Key Features
 
@@ -13,17 +15,17 @@ A Java and Selenium WebDriver automation tool that crawls Flickr user photostrea
 - **Multi-User Photostream Crawling**: Processes one or multiple comma-separated Flickr user IDs, detects pagination automatically, scrolls to trigger lazy-loaded photos, and exports all photo page URLs.
 - **Maximum-Resolution Image URL Extraction**: Visits each photo's size page (starting from `/sizes/3k/`), automatically selects the highest available resolution from Flickr's size list, and saves direct image URLs to disk.
 - **Bandwidth-Saving Proxy Filtering**:
-  - Uses **BrowserMob Proxy** during photostream crawling to block heavy static assets (`.jpg`, `.jpeg`, `.png`, `.woff`, `.woff2`) and monitor `flickr.people.getPhotos` requests.
+  - Uses an embedded **LittleProxy** server during photostream crawling to block heavy static assets (`.jpg`, `.jpeg`, `.png`, `.woff`, `.woff2`) and monitor `flickr.people.getPhotos` requests.
   - Uses an embedded **LittleProxy** server (port `6969`) plus Firefox's `permissions.default.image = 2` setting during size resolution to skip unnecessary network requests and image rendering.
 - **Headless Server Support**: Supports running Firefox silently on Linux/Ubuntu servers via `Xvfb`, as well as an `HtmlUnitDriver` mode.
 
 ## Tech Stack
 
-- **Language**: Java 8 (`1.8`)
-- **Build Tool**: Apache Maven (with included Maven Wrapper `./mvnw` and `mvnw.cmd`)
-- **Browser Automation**: Selenium WebDriver (`3.141.59`), GeckoDriver (Firefox), HtmlUnitDriver (`2.32.1`)
-- **Proxy & Traffic Filtering**: BrowserMob Proxy (`2.1.5`), LittleProxy / Netty
-- **Data & Utilities**: Jackson (`2.10.1`), Apache Commons IO / CSV / Text / Codec, JUnit 4 (`4.12`), SLF4J / Logback
+- **Language**: Java 17
+- **Build Tool**: Apache Maven 3.9+ (with included Maven Wrapper `./mvnw` and `mvnw.cmd`)
+- **Browser Automation**: Selenium WebDriver (`4.54.0`), GeckoDriver (Firefox), HtmlUnit3 Driver (`4.54.0`)
+- **Proxy & Traffic Filtering**: LittleProxy (`2.10.0`) / Netty
+- **Data & Utilities**: Jackson (`2.23.0`), Apache Commons IO / Lang3 / CSV, JUnit 4 (`4.13.2`), SLF4J 2 (`2.0.20`) / Logback (`1.5.38`)
 
 ## Project Structure
 
@@ -47,7 +49,7 @@ auto-download-from-flickr/
 
 ## Prerequisites
 
-- **JDK 8** installed and `JAVA_HOME` configured
+- **JDK 17+** installed and `JAVA_HOME` configured
 - **Mozilla Firefox** (when using `browser=firefox`)
 - A compatible **GeckoDriver** binary placed inside `files/` (a Windows `geckodriver.exe` is included; on Linux/macOS, place the matching `geckodriver` binary in `files/`)
 - A valid **Flickr account** (email and password)
@@ -78,7 +80,7 @@ On the first successful login, session cookies are saved automatically to `confi
 
 ## Usage
 
-The workflow runs as two JUnit test stages executed via the Maven Wrapper (`./mvnw` on Linux/macOS or `mvnw.cmd` on Windows):
+The workflow runs as two JUnit test stages executed via the Maven Wrapper (`./mvnw` on Linux/macOS or `mvnw.cmd` on Windows) or system `mvn`:
 
 ### 1. Collect Photostream Photo URLs
 
